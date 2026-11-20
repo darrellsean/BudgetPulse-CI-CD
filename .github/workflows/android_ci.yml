@@ -1,0 +1,48 @@
+name: BudgetPulse Android CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  build-and-test:
+    name: Build, Unit Test & Package APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: 2. Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 3. Setup Gradle Caching
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 4. Grant Execute Permission for Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: 5. Run Local Unit Tests (JVM)
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: 6. Upload Unit Test HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: budgetpulse-unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest/
+
+      - name: 7. Build Debug APK (Continuous Delivery)
+        run: ./gradlew assembleDebug
+
+      - name: 8. Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: budgetpulse-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
